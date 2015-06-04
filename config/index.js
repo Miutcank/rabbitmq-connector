@@ -6,9 +6,6 @@ var CONFIG_PATH = process.env.CONFIG_PATH;
 if (CONFIG_PATH) {
     //Load a custom configuration path.
     config.loadFile(CONFIG_PATH);
-} else {
-    //Load the environment-specific configuration path.
-    config.load(require('./' + env));
 }
 
 config.validate();
