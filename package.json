@@ -9,14 +9,18 @@
     "precommit": "gulp lint",
     "prepush": "gulp test"
   },
-  "author": "Miutcank",
+  "author": {
+    "name": "miutcank",
+    "email": "zsolt@miutcank.hu",
+    "url": "http://miutcank.hu"
+  },
   "contributors":[{
-    name:"Daniel Gulyas",
-    email:"guldanabz@gmail.com"
+    "name":"Daniel Gulyas",
+    "email":"dani@miutcank.hu"
   },
   {
-    name: "Zsolt Bako",
-    email:"zsolt@miutcank.hu"
+    "name": "Zsolt Bako",
+    "email":"zsolt@miutcank.hu"
   }],
   "dependencies": {
     "amqplib": "^0.3.2",
