@@ -1,6 +1,5 @@
 var convict = require('convict');
 var config = convict(require('./schema'));
-var env = config.get('env');
 var CONFIG_PATH = process.env.CONFIG_PATH;
 
 if (CONFIG_PATH) {

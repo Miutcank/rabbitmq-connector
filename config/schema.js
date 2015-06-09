@@ -8,7 +8,8 @@ module.exports = {
     rabbitMQ: {
         uri: {
             doc: 'The RabbitMQ connection string',
-            default: 'amqp://password@host:5000',
+            format: String,
+            default: null,  // required, must be set via env var
             env: 'RABBITMQ_URI'
         },
         prefetchCount: {
@@ -27,13 +28,13 @@ module.exports = {
         name: {
             doc: 'Logger name',
             format: String,
-            default: 'RMQC'
+            default: 'RabbitMQ'
         },
         logStash: {
             host: {
                 doc: 'The logstash host to connect to.',
                 format: String,
-                default: '127.0.0.1',
+                default: null,  // required, must be set via env var
                 env: 'LOGSTASH_URL'
             },
             port: {
