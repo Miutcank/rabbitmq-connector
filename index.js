@@ -2,8 +2,7 @@ var config = require('./config');
 var amqplib = require('amqplib');
 var log = require('./utils/logger')();
 var Promise = require('bluebird');
-var RABBIT_URL = config.rabbitMQ.uri;
-
+var RABBIT_URI = config.rabbitMQ.uri;
 
 var connector = module.exports = function rabbitMqConnectorConstructor(){
 	connector.channels = [];
@@ -16,15 +15,15 @@ var connector = module.exports = function rabbitMqConnectorConstructor(){
 			});
 		}
 
-		log.info({ url: RABBIT_URL }, 'Connecting to RabbitMQ');
+		log.info({ url: RABBIT_URI }, 'Connecting to RabbitMQ');
 
-		return amqplib.connect(RABBIT_URL)
+		return amqplib.connect(RABBIT_URI)
 			.tap(function cacheConnectionAndLogSuccessfulConnection(connection) {
 				connector.connection = connection;
 				log.info('Connection to RabbitMQ established.');
 			})
 			.catch(function logFailedConnection(error) {
-				log.error({ url: RABBIT_URL, error: error },
+				log.error({ url: RABBIT_URI, error: error },
 					'Connection to RabbitMQ failed.');
 				throw error;
 			});
@@ -126,10 +125,10 @@ var connector = module.exports = function rabbitMqConnectorConstructor(){
     };
 
     // connect and open a channel when opened.
-    amqplib.connect(RABBIT_URL)
+    amqplib.connect(RABBIT_URI)
 			.then(function cacheConnectionAndLogSuccessfulConnection(connection) {
 				connector.connection = connection;
-				log.info('Connection to RabbitMQ established.');
+				log.info('Connection to RabbitMQ established.', {URI: RABBIT_URI});
 				return connector.connection.createChannel();
 			})
 			.then(function cacheChannel(channel){
