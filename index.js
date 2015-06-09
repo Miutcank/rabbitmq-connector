@@ -4,6 +4,7 @@ var log = require('./utils/logger')();
 var Promise = require('bluebird');
 var RABBIT_URL = config.rabbitMQ.uri;
 
+
 module.exports = function rabbitMqConnectorConstructor(){
 	var connector = this;
 	connector.channels = [];
@@ -35,7 +36,7 @@ module.exports = function rabbitMqConnectorConstructor(){
 		exchangeId = config.env + '.' + exchangeId;
 		return connector.connect()
 			.then(function createChannel(){
-				return connector.connection.createChannel();
+				return getChannel();
 			})
 			.then(function assertExchange(channel){
 				channel.assertExchange(exchangeId, 'fanout', {durable: true});
@@ -55,11 +56,7 @@ module.exports = function rabbitMqConnectorConstructor(){
 	connector.createReadChannel = function createReadChannel(exchangeId, queueId) {
 		var exchangeName = config.env + '.' + exchangeId;
 		var queueName = config.env + '.' + queueId;
-		return connector.connect()
-			.then(function createChannel(connection) {
-				log.info('Creating RabbitMQ read channel.');
-				return connection.createChannel();
-			})
+		return getChannel()
 			.then(function setPrefetchLimit(channel) {
 				var prefetchPromise = channel.prefetch(config.rabbitMQ.prefetchCount, false); // throttling
 				return [channel, prefetchPromise];
@@ -106,6 +103,12 @@ module.exports = function rabbitMqConnectorConstructor(){
 			});
 	};
 
+	function getChannel(){
+		return new Promise(function giveChannelBack(resolve) {
+			resolve(connector.channels[0]);
+		});
+	}
+
 	function checkChannel(queueId) {
 		if (!connector.channels[queueId]) {
 			log.error('AMQP Channel not found');
@@ -122,6 +125,21 @@ module.exports = function rabbitMqConnectorConstructor(){
         checkChannel(queueId);
         connector.channels[queueId].nack(message);
     };
+
+    // connect and open a channel when opened.
+    amqplib.connect(RABBIT_URL)
+			.then(function cacheConnectionAndLogSuccessfulConnection(connection) {
+				connector.connection = connection;
+				log.info('Connection to RabbitMQ established.');
+				return connector.connection.createChannel();
+			})
+			.then(function cacheChannel(channel){
+				connector.channels.push(channel);
+				log.info('RabbitMQ channel created successfully');
+			})
+			.catch(function handleError(e){
+				log.error({error: e}, 'Error while connecting to RabbitMQ.');
+			});
 
 	return connector;
 
