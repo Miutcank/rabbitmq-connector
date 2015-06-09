@@ -5,8 +5,7 @@ var Promise = require('bluebird');
 var RABBIT_URL = config.rabbitMQ.uri;
 
 
-module.exports = function rabbitMqConnectorConstructor(){
-	var connector = this;
+var connector = module.exports = function rabbitMqConnectorConstructor(){
 	connector.channels = [];
 
 	// connect
