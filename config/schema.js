@@ -8,7 +8,7 @@ module.exports = {
     rabbitMQ: {
         uri: {
             doc: 'The RabbitMQ connection string',
-            default: 'amqp://password@host:5000',
+            default: null,
             env: 'RABBITMQ_URI'
         },
         prefetchCount: {

@@ -6,11 +6,14 @@ module.exports = function createLogger(){
 		streams: [
 		{
 			type: 'raw',
-			stream: require('bunyan-logstash').createStream({
+			stream: require('bunyan-logstash-tcp').createStream({
 				host: config.logStash.host,
 				port: config.logStash.port,
 				tags: ['bunyan', 'rabbitmq-connector']
 			})
+		},
+		{
+			stream: process.stdout
 		}
 		]
 	});
