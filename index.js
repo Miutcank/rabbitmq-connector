@@ -3,6 +3,7 @@ var amqplib = require('amqplib');
 var log = require('./utils/logger')();
 var Promise = require('bluebird');
 var RABBIT_URI = config.rabbitMQ.uri;
+var PUBLISHER = 'publisher';
 
 var connector = module.exports = function rabbitMqConnectorConstructor() {
 
@@ -39,6 +40,7 @@ var connector = module.exports = function rabbitMqConnectorConstructor() {
 			})
 			.tap(function cacheChannel(channel) {
 				connector.channels[id] = channel;
+				log.info({ channelId: id }, 'RabbitMQ channel established.');
 			})
 			.catch(function logFailedChannelCreation(error) {
 				log.error({ url: RABBIT_URI, error: error }, 'RabbitMQ Channel creation failed.');
@@ -117,7 +119,7 @@ var connector = module.exports = function rabbitMqConnectorConstructor() {
 
 	connector.publish = function publish(exchangeId, data){
 		exchangeId = config.env + '.' + exchangeId;
-		return getChannel('publisher')
+		return getChannel(PUBLISHER)
 			.then(function assertExchange(channel){
 				channel.assertExchange(exchangeId, 'fanout', {durable: true});
 				return channel;
@@ -132,5 +134,6 @@ var connector = module.exports = function rabbitMqConnectorConstructor() {
 			});
 	};
 
+	getChannel(PUBLISHER);
 	return connector;
 };
