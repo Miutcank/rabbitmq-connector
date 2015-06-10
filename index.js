@@ -4,57 +4,59 @@ var log = require('./utils/logger')();
 var Promise = require('bluebird');
 var RABBIT_URI = config.rabbitMQ.uri;
 
-var connector = module.exports = function rabbitMqConnectorConstructor(){
+var connector = module.exports = function rabbitMqConnectorConstructor() {
+
 	connector.channels = [];
 
-	// connect
-	connector.connect = function connect() {
+	function connect() {
 		if (connector.connection) {
 			return new Promise(function giveConnectorBack(resolve) {
 				resolve(connector.connection);
 			});
 		}
 
-		log.info({ url: RABBIT_URI }, 'Connecting to RabbitMQ');
+		log.info({ url: RABBIT_URI }, 'Connecting to RabbitMQ...');
 
 		return amqplib.connect(RABBIT_URI)
 			.tap(function cacheConnectionAndLogSuccessfulConnection(connection) {
 				connector.connection = connection;
-				log.info('Connection to RabbitMQ established.');
+				log.info({ url: RABBIT_URI }, 'Connection to RabbitMQ established.');
 			})
 			.catch(function logFailedConnection(error) {
-				log.error({ url: RABBIT_URI, error: error },
-					'Connection to RabbitMQ failed.');
+				log.error({ url: RABBIT_URI, error: error }, 'Connection to RabbitMQ failed.');
 				throw error;
 			});
-	};
+	}
 
-	// publish
-	connector.publish = function publish(exchangeId, data){
-		exchangeId = config.env + '.' + exchangeId;
-		return connector.connect()
-			.then(function createChannel(){
-				return getChannel();
+	function getChannel(id) {
+		return connect()
+			.then(function giveChannelBack(connection) {
+				if (connector.channels[id]) {
+					return connector.channels[id];
+				} else {
+					return connection.createChannel();
+				}
 			})
-			.then(function assertExchange(channel){
-				channel.assertExchange(exchangeId, 'fanout', {durable: true});
-				return channel;
+			.tap(function cacheChannel(channel) {
+				connector.channels[id] = channel;
 			})
-			.then(function publishMessage(channel){
-				channel.publish(exchangeId, '', new Buffer(JSON.stringify(data)));
-				log.debug({exchangeId: exchangeId, data: data}, 'RabbitMQ message published');
-			})
-			.catch(function handleError(e){
-				log.error({exchangeId: exchangeId, data: data, err: e}, 'Publishing to rabbitMQ failed');
-				throw e;
+			.catch(function logFailedChannelCreation(error) {
+				log.error({ url: RABBIT_URI, error: error }, 'RabbitMQ Channel creation failed.');
+				throw error;
 			});
-	};
+	}
 
-	// create read channel
+	function checkChannel(queueId) {
+		if (!connector.channels[queueId]) {
+			log.error('AMQP Channel not found');
+			throw Error('Channel not found');
+		}
+	}
+
 	connector.createReadChannel = function createReadChannel(exchangeId, queueId) {
 		var exchangeName = config.env + '.' + exchangeId;
 		var queueName = config.env + '.' + queueId;
-		return getChannel()
+		return getChannel(queueId)
 			.then(function setPrefetchLimit(channel) {
 				var prefetchPromise = channel.prefetch(config.rabbitMQ.prefetchCount, false); // throttling
 				return [channel, prefetchPromise];
@@ -101,44 +103,34 @@ var connector = module.exports = function rabbitMqConnectorConstructor(){
 			});
 	};
 
-	function getChannel(){
-		return new Promise(function giveChannelBack(resolve) {
-			resolve(connector.channels[0]);
-		});
-	}
-
-	function checkChannel(queueId) {
-		if (!connector.channels[queueId]) {
-			log.error('AMQP Channel not found');
-			throw Error('Channel not found');
-		}
-	}
-
-    connector.acknowledge = function acknowledge(queueId, message) {
+	connector.acknowledge = function acknowledge(queueId, message) {
+		log.info('acknowledging', {queueId: queueId});
         checkChannel(queueId);
         connector.channels[queueId].ack(message);
     };
 
     connector.reject = function reject(queueId, message) {
+		log.error('rejecting', {queueId: queueId});
         checkChannel(queueId);
         connector.channels[queueId].nack(message);
     };
 
-    // connect and open a channel when opened.
-    amqplib.connect(RABBIT_URI)
-			.then(function cacheConnectionAndLogSuccessfulConnection(connection) {
-				connector.connection = connection;
-				log.info('Connection to RabbitMQ established.', {URI: RABBIT_URI});
-				return connector.connection.createChannel();
+	connector.publish = function publish(exchangeId, data){
+		exchangeId = config.env + '.' + exchangeId;
+		return getChannel('publisher')
+			.then(function assertExchange(channel){
+				channel.assertExchange(exchangeId, 'fanout', {durable: true});
+				return channel;
 			})
-			.then(function cacheChannel(channel){
-				connector.channels.push(channel);
-				log.info('RabbitMQ channel created successfully');
+			.then(function publishMessage(channel){
+				channel.publish(exchangeId, '', new Buffer(JSON.stringify(data)));
+				log.debug({exchangeId: exchangeId, data: data}, 'RabbitMQ message published');
 			})
 			.catch(function handleError(e){
-				log.error({error: e}, 'Error while connecting to RabbitMQ.');
+				log.error({exchangeId: exchangeId, data: data, err: e}, 'Publishing to rabbitMQ failed');
+				throw e;
 			});
+	};
 
 	return connector;
-
 };
