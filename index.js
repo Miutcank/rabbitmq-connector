@@ -35,9 +35,13 @@ var connector = module.exports = function rabbitMqConnectorConstructor() {
 				if (connector.channels[id]) {
 					return connector.channels[id];
 				} else {
-					return connection.createChannel();
+					return createChannel(connection, id);
 				}
 			})
+	}
+
+	function createChannel(connection, id) {
+		return connection.createChannel()
 			.tap(function cacheChannel(channel) {
 				connector.channels[id] = channel;
 				log.info({ channelId: id }, 'RabbitMQ channel established.');
