@@ -11,6 +11,10 @@ module.exports = function createLogger(){
 				port: config.logStash.port,
 				tags: ['bunyan', 'rabbitmq-connector']
 			})
+			.on('error', function func(err) {
+				console.error('[rabbitmq-connector] Error in bunyan-logstash-tcp stream');
+				console.error(err);
+			})
 		},
 		{
 			stream: process.stdout
