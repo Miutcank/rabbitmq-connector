@@ -110,7 +110,7 @@ var connector = module.exports = function rabbitMqConnectorConstructor() {
 	};
 
 	connector.acknowledge = function acknowledge(queueId, message) {
-		log.info('acknowledging', {queueId: queueId});
+		log.debug('acknowledging', {queueId: queueId});
         checkChannel(queueId);
         connector.channels[queueId].ack(message);
     };
