@@ -1,7 +1,7 @@
 module.exports = {
     env: {
         doc: 'The applicaton environment.',
-        format: ['production', 'development', 'testing'],
+        format: String,
         default: 'development',
         env: 'NODE_ENV'
     },
