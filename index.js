@@ -5,9 +5,12 @@ var Promise = require('bluebird');
 var RABBIT_URI = config.rabbitMQ.uri;
 var PUBLISHER = 'publisher';
 
-var connector = module.exports = function rabbitMqConnectorConstructor() {
+var connector = module.exports = function rabbitMqConnectorConstructor(env) {
 
 	connector.channels = [];
+	if (env) {
+		config.env = env;
+	}
 
 	function connect() {
 		if (connector.connection) {
